@@ -1,5 +1,7 @@
 
-use crate::{lexer::Lexer, parser::Parser};
+use inkwell::context::Context;
+
+use crate::{codegen::CodeGen, lexer::Lexer, parser::Parser};
 
 mod ast;
 mod lexer;
@@ -19,6 +21,14 @@ fn main() {
     let program = parser.parse_program();
 
     println!("{:#?}", program);
+
+    let context = Context::create();
+
+    let mut codegen = CodeGen::new(&context);
+
+    codegen.compile_program(&program);
+
+    codegen.print_ir();
 }
 
 // fn main() {

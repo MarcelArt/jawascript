@@ -1,11 +1,15 @@
-use inkwell::{builder::Builder, context::Context, module::Module, values::IntValue};
+use std::collections::HashMap;
 
-use crate::ast::{BinaryOp, Expr};
+use inkwell::{builder::Builder, context::Context, module::Module, values::{IntValue, PointerValue}};
+
+use crate::ast::{BinaryOp, Expr, Statement};
 
 pub struct CodeGen<'ctx> {
     context: &'ctx Context,
     builder: Builder<'ctx>,
     module: Module<'ctx>,
+
+    variables: HashMap<String, PointerValue<'ctx>>,
 }
 
 #[allow(unused)]
@@ -19,7 +23,28 @@ impl<'ctx> CodeGen<'ctx> {
             context,
             builder,
             module,
+            variables: HashMap::new(),
         }
+    }
+
+    pub fn compile_program(&mut self, statements: &[Statement]) {
+        let i64_type = self.context.i64_type();
+
+        let fn_type = i64_type.fn_type(&[], false);
+
+        let function = self.module.add_function("main", fn_type, None);
+
+        let block = self.context.append_basic_block(function, "entry");
+
+        self.builder.position_at_end(block);
+
+        let mut last_value = i64_type.const_int(0, false);
+
+        for stmt in statements {
+            last_value = self.compile_statement(stmt);
+        }
+
+        self.builder.build_return(Some(&last_value)).unwrap();
     }
 
     pub fn compile(&mut self, expr: &Expr) {
@@ -63,7 +88,36 @@ impl<'ctx> CodeGen<'ctx> {
                     },
                 }
             },
+            Expr::Variable(name) => {
+                let ptr = self.variables
+                    .get(name)
+                    .expect("Undefined variable");
+
+                self.builder
+                    .build_load(self.context.i64_type(), *ptr, name)
+                    .unwrap()
+                    .into_int_value()
+            }
             _ => panic!("Unexpected expression"),
+        }
+    }
+
+    fn compile_statement(&mut self, stmt: &Statement) -> IntValue<'ctx> {
+        match stmt {
+            Statement::Let { name, value } => {
+                let value = self.compile_expr(value);
+
+                let ptr = self.builder.build_alloca(self.context.i64_type(), name).unwrap();
+
+                self.builder.build_store(ptr, value).unwrap();
+
+                self.variables.insert(name.clone(), ptr);
+
+                value
+            }
+            Statement::Expr(expr) => {
+                self.compile_expr(expr)
+            }
         }
     }
 
