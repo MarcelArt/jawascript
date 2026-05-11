@@ -1,8 +1,11 @@
-use crate::parser::Parser;
+use inkwell::context::Context;
+
+use crate::{codegen::CodeGen, parser::Parser};
 
 mod ast;
 mod lexer;
 mod parser;
+mod codegen;
 
 fn main() {
     let source = "1 + 2 * 3";
@@ -14,6 +17,14 @@ fn main() {
     let ast = parser.parse();
 
     println!("{:#?}", ast);
+
+    let context = Context::create();
+
+    let mut codegen = CodeGen::new(&context);
+
+    codegen.compile(&ast);
+
+    codegen.print_ir();
 
     // let tokens = lex.tokenize();
 
