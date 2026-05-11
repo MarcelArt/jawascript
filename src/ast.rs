@@ -2,11 +2,23 @@
 pub enum Expr {
     Number(i64),
 
+    Variable(String),
+
     Binary {
         left: Box<Expr>,
         op: BinaryOp,
         right: Box<Expr>,
     }
+}
+
+#[derive(Debug)]
+pub enum Statement {
+    Let {
+        name: String,
+        value: Expr,
+    },
+
+    Expr(Expr),
 }
 
 #[derive(Debug)]

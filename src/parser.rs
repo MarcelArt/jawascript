@@ -1,4 +1,6 @@
-use crate::{ast::{BinaryOp, Expr}, lexer::{Lexer, Token}};
+use core::panic;
+
+use crate::{ast::{BinaryOp, Expr, Statement}, lexer::{Lexer, Token}};
 
 pub struct Parser {
     lexer: Lexer,
@@ -17,6 +19,28 @@ impl Parser {
 
     fn advance(&mut self) {
         self.current_token = self.lexer.next_token();
+    }
+
+    #[allow(unused)]
+    pub fn parse(&mut self) -> Expr {
+        self.parse_expression() 
+    }
+
+    pub fn parse_statement(&mut self) -> Statement {
+        match self.current_token.clone() {
+            Token::Let => self.parse_let_statement(),
+            _ => Statement::Expr(self.parse_expression()),
+        }
+    }
+
+    pub fn parse_program(&mut self) -> Vec<Statement> {
+        let mut statements = Vec::new();
+
+        while self.current_token != Token::EOF {
+            statements.push(self.parse_statement());
+        }
+
+        statements
     }
 
     fn parse_factor(&mut self) -> Expr {
@@ -38,6 +62,10 @@ impl Parser {
                     _ => panic!("Expected ')'"),
                 }
             },
+            Token::Identifier(name) => {
+                self.advance();
+                Expr::Variable(name)
+            }
             _ => panic!("Unexpected token {:?}", self.current_token),
         }
     }
@@ -109,8 +137,28 @@ impl Parser {
         left
     }
 
-    pub fn parse(&mut self) -> Expr {
-        self.parse_expression()
-        
+    fn parse_let_statement(&mut self) -> Statement {
+        self.advance();
+
+        let name = match self.current_token.clone() {
+            Token::Identifier(name) => name,
+            _ => panic!("Expected identifier"),
+        };
+
+        self.advance();
+
+        match self.current_token {
+            Token::Equal => self.advance(),
+            _ => panic!("Expected '='"),
+        }
+
+        let value = self.parse_expression();
+
+        match self.current_token {
+            Token::Semicolon => self.advance(),
+            _ => panic!("Expected ';'",),
+        }
+
+        Statement::Let { name, value }
     }
 }

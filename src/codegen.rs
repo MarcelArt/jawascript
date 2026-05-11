@@ -8,6 +8,7 @@ pub struct CodeGen<'ctx> {
     module: Module<'ctx>,
 }
 
+#[allow(unused)]
 impl<'ctx> CodeGen<'ctx> {
     pub fn new(context: &'ctx Context) -> Self {
         let module = context.create_module("main");
@@ -61,7 +62,8 @@ impl<'ctx> CodeGen<'ctx> {
                         self.builder.build_int_signed_div(lhs, rhs, "divtmp").unwrap()
                     },
                 }
-            }
+            },
+            _ => panic!("Unexpected expression"),
         }
     }
 

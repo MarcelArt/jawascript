@@ -2,6 +2,13 @@
 pub enum Token {
     Number(i64),
 
+    Identifier(String),
+
+    Let,
+
+    Equal,
+    Semicolon,
+
     Plus,
     Minus,
     Star,
@@ -27,15 +34,15 @@ impl Lexer {
         }
     }
 
-    pub fn current_char(&self) -> Option<char> {
+    fn current_char(&self) -> Option<char> {
         self.input.get(self.position).copied()
     }
 
-    pub fn advance(&mut self) {
+    fn advance(&mut self) {
         self.position += 1;
     }
 
-    pub fn read_number(&mut self) -> Token {
+    fn read_number(&mut self) -> Token {
         let start = self.position;
 
         while let Some(ch) = self.current_char() {
@@ -49,6 +56,25 @@ impl Lexer {
         let number: String = self.input[start..self.position].iter().collect();
 
         Token::Number(number.parse().unwrap())
+    }
+
+    fn read_identifier(&mut self) -> Token {
+        let start = self.position;
+
+        while let Some(ch) = self.current_char() {
+            if ch.is_alphanumeric() || ch == '_' {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        let ident: String = self.input[start..self.position].iter().collect();
+
+        match ident.as_str() {
+            "let" => Token::Let,
+            _ => Token::Identifier(ident),
+        }
     }
 
     pub fn next_token(&mut self) -> Token {
@@ -82,6 +108,17 @@ impl Lexer {
                 '0'..='9' => {
                     return self.read_number();
                 },
+                '=' => {
+                    self.advance();
+                    return Token::Equal;
+                },
+                ';' => {
+                    self.advance();
+                    return Token::Semicolon;
+                },
+                'a'..='z' | 'A'..='Z' | '_' => {
+                    return self.read_identifier();
+                }
                 _ => {
                     panic!("Unexpected character: {}", ch);
                 }
@@ -91,6 +128,7 @@ impl Lexer {
         Token::EOF
     }
 
+    #[allow(unused)]
     pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
 

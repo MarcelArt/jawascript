@@ -1,6 +1,5 @@
-use inkwell::context::Context;
 
-use crate::{codegen::CodeGen, parser::Parser};
+use crate::{lexer::Lexer, parser::Parser};
 
 mod ast;
 mod lexer;
@@ -8,30 +7,45 @@ mod parser;
 mod codegen;
 
 fn main() {
-    let source = "1 + 2 * 3";
+    let source = "
+        let x = 10;
+        x + 5
+    ";
 
-    let lex = lexer::Lexer::new(source);
+    let lexer = Lexer::new(source);
 
-    let mut parser = Parser::new(lex);
+    let mut parser = Parser::new(lexer);
 
-    let ast = parser.parse();
+    let program = parser.parse_program();
 
-    println!("{:#?}", ast);
-
-    let context = Context::create();
-
-    let mut codegen = CodeGen::new(&context);
-
-    codegen.compile(&ast);
-
-    codegen.print_ir();
-
-    // let tokens = lex.tokenize();
-
-    // for token in tokens {
-    //     println!("{:?}", token);
-    // }
+    println!("{:#?}", program);
 }
+
+// fn main() {
+//     let source = "1 + 2 * 3";
+
+//     let lex = lexer::Lexer::new(source);
+
+//     let mut parser = Parser::new(lex);
+
+//     let ast = parser.parse();
+
+//     println!("{:#?}", ast);
+
+//     let context = Context::create();
+
+//     let mut codegen = CodeGen::new(&context);
+
+//     codegen.compile(&ast);
+
+//     codegen.print_ir();
+
+//     // let tokens = lex.tokenize();
+
+//     // for token in tokens {
+//     //     println!("{:?}", token);
+//     // }
+// }
 
 // fn main() {
 //     let context = Context::create();
