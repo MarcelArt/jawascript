@@ -19,6 +19,11 @@ pub enum Statement {
     },
 
     Expr(Expr),
+
+    If {
+        condition: Expr,
+        then_branch: Vec<Statement>,
+    },
 }
 
 #[derive(Debug)]
@@ -27,4 +32,6 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    Greater,
+    Less,
 }

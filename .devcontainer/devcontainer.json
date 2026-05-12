@@ -1,0 +1,9 @@
+{
+    // "image": "mcr.microsoft.com/devcontainers/rust:latest",
+    // "features": {
+    //     "ghcr.io/devcontainers-community/features/llvm": {}
+    // }
+    "build": {
+        "dockerfile": "Dockerfile"
+    }
+}

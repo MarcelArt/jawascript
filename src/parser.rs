@@ -29,7 +29,8 @@ impl Parser {
     pub fn parse_statement(&mut self) -> Statement {
         match self.current_token.clone() {
             Token::Let => self.parse_let_statement(),
-            _ => Statement::Expr(self.parse_expression()),
+            Token::If => self.parse_if_statement(),
+            _ => Statement::Expr(self.parse_comparison()),
         }
     }
 
@@ -160,5 +161,50 @@ impl Parser {
         }
 
         Statement::Let { name, value }
+    }
+
+    fn parse_comparison(&mut self) -> Expr {
+        let mut expr = self.parse_expression();
+
+        loop {
+            let op = match self.current_token {
+                Token::Greater => BinaryOp::Greater,
+                Token::Less => BinaryOp::Less,
+                _ => break,
+            };
+
+            self.advance();
+
+            let right = self.parse_expression();
+
+            expr = Expr::Binary { 
+                left: Box::new(expr), 
+                op, 
+                right: Box::new(right),
+            };
+        }
+
+        expr
+    }
+
+    fn parse_if_statement(&mut self) -> Statement {
+        self.advance();
+
+        let condition = self.parse_comparison();
+
+        match self.current_token {
+            Token::LBrace => self.advance(),
+            _ => panic!("Expected '{{'"),
+        }
+
+        let mut then_branch = Vec::new();
+
+        while self.current_token != Token::RBrace {
+            then_branch.push(self.parse_statement());
+        }
+
+        self.advance();
+
+        Statement::If { condition, then_branch }
     }
 }

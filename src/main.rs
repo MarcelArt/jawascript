@@ -11,7 +11,10 @@ mod codegen;
 fn main() {
     let source = "
         let x = 10;
-        x + 5
+
+        if x > 5 {
+            x + 1
+        }
     ";
 
     let lexer = Lexer::new(source);

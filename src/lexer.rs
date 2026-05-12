@@ -17,6 +17,13 @@ pub enum Token {
     LParen,
     RParen,
 
+    Greater,
+    Less,
+
+    If,
+    LBrace,
+    RBrace,
+
     EOF,
 
 }
@@ -73,6 +80,7 @@ impl Lexer {
 
         match ident.as_str() {
             "let" => Token::Let,
+            "if" => Token::If,
             _ => Token::Identifier(ident),
         }
     }
@@ -116,9 +124,25 @@ impl Lexer {
                     self.advance();
                     return Token::Semicolon;
                 },
+                '>' => {
+                    self.advance();
+                    return Token::Greater;
+                },
+                '<' => {
+                    self.advance();
+                    return Token::Less;
+                },
+                '{' => {
+                    self.advance();
+                    return Token::LBrace;
+                },
+                '}' => {
+                    self.advance();
+                    return Token::RBrace;
+                },
                 'a'..='z' | 'A'..='Z' | '_' => {
                     return self.read_identifier();
-                }
+                },
                 _ => {
                     panic!("Unexpected character: {}", ch);
                 }
