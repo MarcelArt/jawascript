@@ -23,6 +23,7 @@ pub enum Statement {
     If {
         condition: Expr,
         then_branch: Vec<Statement>,
+        else_branch: Option<Vec<Statement>>,
     },
 }
 

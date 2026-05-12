@@ -127,7 +127,7 @@ impl<'ctx> CodeGen<'ctx> {
             Statement::Expr(expr) => {
                 self.compile_expr(expr)
             },
-            Statement::If { condition, then_branch } => {
+            Statement::If { condition, then_branch, else_branch } => {
                 let parent = self.builder
                     .get_insert_block()
                     .unwrap()
@@ -135,6 +135,8 @@ impl<'ctx> CodeGen<'ctx> {
                     .unwrap();
 
                 let then_block = self.context.append_basic_block(parent, "then");
+
+                let else_block = self.context.append_basic_block(parent, "else");
 
                 let merge_block = self.context.append_basic_block(parent, "merge");
 
@@ -144,21 +146,33 @@ impl<'ctx> CodeGen<'ctx> {
 
                 let condition_bool = self.builder.build_int_compare(IntPredicate::NE, condition_value, zero, "ifcond").unwrap();
 
-                self.builder.build_conditional_branch(condition_bool, then_block, merge_block).unwrap();
+                self.builder.build_conditional_branch(condition_bool, then_block, else_block).unwrap();
 
+                // Then
                 self.builder.position_at_end(then_block);
 
-                let mut last = self.context.i64_type().const_int(0, false);
-
                 for stmt in then_branch {
-                    last = self.compile_statement(stmt);
+                    self.compile_statement(stmt);
                 }
-
+                
                 self.builder.build_unconditional_branch(merge_block).unwrap();
+                // End Then
+
+                // Else
+                self.builder.position_at_end(else_block);
+
+                if let Some(else_branch) = else_branch {
+                    for stmt in else_branch {
+                        self.compile_statement(stmt);
+                    }
+                }
+                
+                self.builder.build_unconditional_branch(merge_block).unwrap();
+                // End Else
 
                 self.builder.position_at_end(merge_block);
 
-                last
+                self.context.i64_type().const_int(0, false)
             }
             _ => todo!(),
         }

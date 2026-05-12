@@ -199,12 +199,33 @@ impl Parser {
 
         let mut then_branch = Vec::new();
 
+        let else_branch = if self.current_token == Token::Else {
+            self.advance();
+
+            match self.current_token {
+                Token::LBrace => self.advance(),
+                _ => panic!("Expected '{{'"),
+            }
+
+            let mut statements = Vec::new();
+
+            while self.current_token != Token::RBrace {
+                statements.push(self.parse_statement());
+            }
+
+            self.advance();
+
+            Some(statements)
+        } else {
+            None
+        };
+
         while self.current_token != Token::RBrace {
             then_branch.push(self.parse_statement());
         }
 
         self.advance();
 
-        Statement::If { condition, then_branch }
+        Statement::If { condition, then_branch, else_branch }
     }
 }

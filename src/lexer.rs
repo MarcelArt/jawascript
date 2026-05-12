@@ -21,6 +21,7 @@ pub enum Token {
     Less,
 
     If,
+    Else,
     LBrace,
     RBrace,
 
@@ -81,6 +82,7 @@ impl Lexer {
         match ident.as_str() {
             "let" => Token::Let,
             "if" => Token::If,
+            "else" => Token::Else,
             _ => Token::Identifier(ident),
         }
     }
