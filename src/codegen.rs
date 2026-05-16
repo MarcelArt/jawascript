@@ -173,7 +173,66 @@ impl<'ctx> CodeGen<'ctx> {
                 self.builder.position_at_end(merge_block);
 
                 self.context.i64_type().const_int(0, false)
-            }
+            },
+            Statement::Assign { name, value } => {
+                let value = self.compile_expr(value);
+
+                let ptr = *self.variables
+                    .get(name)
+                    .expect("Undefined variable");
+
+                self.builder.build_store(ptr, value).unwrap();
+
+                value
+            },
+            Statement::While { condition, body } => {
+                let parent = self.builder
+                    .get_insert_block()
+                    .unwrap()
+                    .get_parent()
+                    .unwrap();
+
+                let condition_block = self.context.append_basic_block(parent, "whilecond");
+                let body_block = self.context.append_basic_block(parent, "whilebody");
+                let after_block = self.context.append_basic_block(parent, "afterwhile");
+
+                self.builder.build_unconditional_branch(condition_block).unwrap();
+
+                self.builder.position_at_end(condition_block);
+
+                let condition_value = self.compile_expr(condition);
+
+                let zero = self.context.i64_type().const_int(0, false);
+
+                let condition_bool = self.builder
+                    .build_int_compare(
+                        IntPredicate::NE, 
+                        condition_value, 
+                        zero, 
+                        "whilecond"
+                    )
+                    .unwrap();
+
+                self.builder
+                    .build_conditional_branch(
+                        condition_bool, 
+                        body_block, 
+                        after_block
+                    )
+                    .unwrap();
+
+                self.builder.position_at_end(body_block);
+
+                for stmt in body {
+                    self.compile_statement(stmt);
+                }
+
+                self.builder.build_unconditional_branch(condition_block).unwrap();
+
+                self.builder.position_at_end(after_block);
+
+                self.context.i64_type().const_int(0, false)
+            }   
             _ => todo!(),
         }
     }

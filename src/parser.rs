@@ -30,6 +30,8 @@ impl Parser {
         match self.current_token.clone() {
             Token::Let => self.parse_let_statement(),
             Token::If => self.parse_if_statement(),
+            Token::Identifier(_) => self.parse_assignment_statement(),
+            Token::While => self.parse_while_statement(),
             _ => Statement::Expr(self.parse_comparison()),
         }
     }
@@ -227,5 +229,49 @@ impl Parser {
         self.advance();
 
         Statement::If { condition, then_branch, else_branch }
+    }
+
+    fn parse_assignment_statement(&mut self) -> Statement {
+        let name = match self.current_token.clone() {
+            Token::Identifier(name) => name,
+            _ => panic!("Expected identifier"),
+        };
+        
+        self.advance();
+
+        match self.current_token {
+            Token::Equal => self.advance(),
+            _ => panic!("Expected '='"),
+        }
+
+        let value = self.parse_comparison();
+
+        match self.current_token {
+            Token::Semicolon => self.advance(),
+            _ => panic!("Expected ';'"),
+        }
+
+        Statement::Assign { name, value }
+    }
+
+    fn parse_while_statement(&mut self) -> Statement {
+        self.advance();
+
+        let condition = self.parse_comparison();
+
+        match self.current_token {
+            Token::LBrace => self.advance(),
+            _ => panic!("Expected '{{'"),
+        }
+
+        let mut body = Vec::new();
+
+        while self.current_token != Token::RBrace {
+            body.push(self.parse_statement());
+        }
+
+        self.advance();
+
+        Statement::While { condition, body }
     }
 }

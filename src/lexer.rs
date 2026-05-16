@@ -25,6 +25,8 @@ pub enum Token {
     LBrace,
     RBrace,
 
+    While,
+
     EOF,
 
 }
@@ -83,6 +85,7 @@ impl Lexer {
             "let" => Token::Let,
             "if" => Token::If,
             "else" => Token::Else,
+            "while" => Token::While,
             _ => Token::Identifier(ident),
         }
     }

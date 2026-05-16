@@ -9,11 +9,19 @@ mod parser;
 mod codegen;
 
 fn main() {
-    let source = "
-        let x = 10;
+    // let source = "
+    //     let x = 10;
 
-        if x > 5 {
-            x + 1
+    //     if x > 5 {
+    //         x = x + 1;
+    //     }
+    // ";
+
+    let source = "
+        let x = 0;
+
+        while x < 5 {
+            x = x + 1;
         }
     ";
 
