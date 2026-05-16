@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use inkwell::{IntPredicate, builder::Builder, context::Context, module::Module, values::{IntValue, PointerValue}};
+use inkwell::{IntPredicate, builder::Builder, context::Context, module::Module, values::{FunctionValue, IntValue, PointerValue}};
 
 use crate::ast::{BinaryOp, Expr, Statement};
 
@@ -10,6 +10,7 @@ pub struct CodeGen<'ctx> {
     module: Module<'ctx>,
 
     variables: HashMap<String, PointerValue<'ctx>>,
+    functions: HashMap<String, FunctionValue<'ctx>>,
 }
 
 #[allow(unused)]
@@ -24,6 +25,7 @@ impl<'ctx> CodeGen<'ctx> {
             builder,
             module,
             variables: HashMap::new(),
+            functions: HashMap::new()
         }
     }
 
@@ -106,7 +108,16 @@ impl<'ctx> CodeGen<'ctx> {
                     .build_load(self.context.i64_type(), *ptr, name)
                     .unwrap()
                     .into_int_value()
-            }
+            },
+            Expr::Call { name, args } => {
+                let function = *self.functions.get(name).expect("Unknown function");
+
+                let compiled_args: Vec<_> = args.iter().map(|arg| self.compile_expr(arg).into()).collect();
+
+                let call = self.builder.build_call(function, &compiled_args, "calltmp").unwrap();
+
+                call.try_as_basic_value().basic().unwrap().into_int_value()
+            },
             _ => panic!("Unexpected expression"),
         }
     }
@@ -232,7 +243,60 @@ impl<'ctx> CodeGen<'ctx> {
                 self.builder.position_at_end(after_block);
 
                 self.context.i64_type().const_int(0, false)
-            }   
+            },
+            Statement::Function { name, params, body }  => {
+                let i64_type = self.context.i64_type();
+
+                let param_types = vec![i64_type.into(); params.len()];
+
+                let fn_type = i64_type.fn_type(&param_types, false);
+
+                let function = self.module.add_function(
+                    name, 
+                    fn_type, 
+                    None,
+                );
+
+                self.functions.insert(name.clone(), function);
+
+                let entry = self.context.append_basic_block(function, "entry");
+
+                let previous_block = self.builder.get_insert_block();
+
+
+                self.builder.position_at_end(entry);
+
+                let old_variables = self.variables.clone();
+
+                self.variables.clear();
+
+                for (i, param_name) in params.iter().enumerate() {
+                    let param = function.get_nth_param(i as u32).unwrap().into_int_value();
+
+                    let ptr = self.builder.build_alloca(i64_type, param_name).unwrap();
+
+                    self.builder.build_store(ptr, param).unwrap();
+
+                    self.variables.insert(param_name.clone(), ptr);
+                }
+
+                let mut last = i64_type.const_int(0, false);
+
+                for stmt in body {
+                    last = self.compile_statement(stmt);
+                }
+
+                self.builder.build_return(Some(&last)).unwrap();
+
+                self.variables = old_variables;
+
+                if let Some(block) = previous_block {
+                    self.builder.position_at_end(block);
+                }
+
+
+                i64_type.const_int(0, false)
+            }
             _ => todo!(),
         }
     }

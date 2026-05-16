@@ -5,20 +5,23 @@ use crate::{ast::{BinaryOp, Expr, Statement}, lexer::{Lexer, Token}};
 pub struct Parser {
     lexer: Lexer,
     current_token: Token,
+    peek_token: Token,
 }
 
 impl Parser {
     pub fn new(mut lexer: Lexer) -> Self {
         let current_token = lexer.next_token();
+        let peek_token = lexer.next_token();
 
         Self {
             lexer,
             current_token,
+            peek_token,
         }
     }
 
     fn advance(&mut self) {
-        self.current_token = self.lexer.next_token();
+        self.current_token = std::mem::replace(&mut self.peek_token, self.lexer.next_token())
     }
 
     #[allow(unused)]
@@ -30,8 +33,15 @@ impl Parser {
         match self.current_token.clone() {
             Token::Let => self.parse_let_statement(),
             Token::If => self.parse_if_statement(),
-            Token::Identifier(_) => self.parse_assignment_statement(),
+            Token::Identifier(_) => {
+                if self.peek_token == Token::Equal {
+                    self.parse_assignment_statement()
+                } else {
+                    Statement::Expr(self.parse_comparison())
+                }
+            },
             Token::While => self.parse_while_statement(),
+            Token::Fn => self.parse_function(),
             _ => Statement::Expr(self.parse_comparison()),
         }
     }
@@ -66,9 +76,30 @@ impl Parser {
                 }
             },
             Token::Identifier(name) => {
+                let name = name.clone();
+                
                 self.advance();
-                Expr::Variable(name)
-            }
+
+                if self.current_token == Token::LParen {
+                    self.advance();
+
+                    let mut args = Vec::new();
+
+                    while self.current_token != Token::RParen {
+                        args.push(self.parse_comparison());
+
+                        if self.current_token == Token::Comma {
+                            self.advance();
+                        }
+                    }
+
+                    self.advance();
+
+                    Expr::Call { name, args }
+                } else {
+                    Expr::Variable(name)
+                }
+            },
             _ => panic!("Unexpected token {:?}", self.current_token),
         }
     }
@@ -273,5 +304,55 @@ impl Parser {
         self.advance();
 
         Statement::While { condition, body }
+    }
+
+    fn parse_function(&mut self) -> Statement {
+        self.advance();
+
+        let name = match  self.current_token.clone() {
+            Token::Identifier(name) => name,
+            _ => panic!("Expected function name"),
+        };
+
+        self.advance();
+
+        match self.current_token {
+            Token::LParen => self.advance(),
+            _ => panic!("Expected '('"),
+        }
+
+        let mut params = Vec::new();
+
+        while self.current_token != Token::RParen {
+            match self.current_token.clone() {
+                Token::Identifier(name) => {
+                    params.push(name);
+                },
+                _ => panic!("Expected parameter"),
+            }
+
+            self.advance();
+
+            if self.current_token == Token::Comma {
+                self.advance();
+            }
+        }
+
+        self.advance();
+
+        match self.current_token {
+            Token::LBrace => self.advance(),
+            _ => panic!("Expected '{{'"),
+        }
+
+        let mut body = Vec::new();
+
+        while self.current_token != Token::RBrace {
+            body.push(self.parse_statement());
+        }
+
+        self.advance();
+
+        Statement::Function { name, params, body }
     }
 }

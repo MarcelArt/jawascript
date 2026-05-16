@@ -8,6 +8,7 @@ pub enum Token {
 
     Equal,
     Semicolon,
+    Comma,
 
     Plus,
     Minus,
@@ -26,6 +27,8 @@ pub enum Token {
     RBrace,
 
     While,
+
+    Fn,
 
     EOF,
 
@@ -86,6 +89,7 @@ impl Lexer {
             "if" => Token::If,
             "else" => Token::Else,
             "while" => Token::While,
+            "fn" => Token::Fn,
             _ => Token::Identifier(ident),
         }
     }
@@ -144,6 +148,10 @@ impl Lexer {
                 '}' => {
                     self.advance();
                     return Token::RBrace;
+                },
+                ',' => {
+                    self.advance();
+                    return Token::Comma;
                 },
                 'a'..='z' | 'A'..='Z' | '_' => {
                     return self.read_identifier();

@@ -17,12 +17,20 @@ fn main() {
     //     }
     // ";
 
-    let source = "
-        let x = 0;
+    // let source = "
+    //     let x = 0;
 
-        while x < 5 {
-            x = x + 1;
+    //     while x < 5 {
+    //         x = x + 1;
+    //     }
+    // ";
+
+    let source = "
+        fn add(a, b) {
+            a + b
         }
+
+        add(10, 20)
     ";
 
     let lexer = Lexer::new(source);

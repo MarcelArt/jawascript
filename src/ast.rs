@@ -8,7 +8,12 @@ pub enum Expr {
         left: Box<Expr>,
         op: BinaryOp,
         right: Box<Expr>,
-    }
+    },
+
+    Call {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 #[derive(Debug)]
@@ -33,6 +38,12 @@ pub enum Statement {
 
     While {
         condition: Expr,
+        body: Vec<Statement>,
+    },
+
+    Function {
+        name: String,
+        params: Vec<String>,
         body: Vec<Statement>,
     },
 }
